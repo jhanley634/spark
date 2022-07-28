@@ -114,9 +114,7 @@ def _auto_patch_spark() -> None:
         except Exception as e:
             logger = logging.getLogger("pyspark.pandas.usage_logger")
             logger.warning(
-                "Tried to attach usage logger `{}`, but an exception was raised: {}".format(
-                    logger_module, str(e)
-                )
+                f"Tried to attach usage logger `{logger_module}`, but an exception was raised: {str(e)}"
             )
 
 

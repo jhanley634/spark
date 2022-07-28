@@ -64,7 +64,7 @@ class TestDefaultSolver(SparkSessionTestCase):
         self.assertEqual(model.getSolver(), "l-bfgs")
         transformed1 = model.transform(df)
         path = tempfile.mkdtemp()
-        model_path = path + "/mlp"
+        model_path = f"{path}/mlp"
         model.save(model_path)
         model2 = MultilayerPerceptronClassificationModel.load(model_path)
         self.assertEqual(model2.getSolver(), "l-bfgs")
@@ -80,7 +80,7 @@ class TestDefaultSolver(SparkSessionTestCase):
         self.assertEqual(model.getSolver(), "adamW")
         transformed1 = model.transform(df)
         path = tempfile.mkdtemp()
-        model_path = path + "/fm"
+        model_path = f"{path}/fm"
         model.save(model_path)
         model2 = FMClassificationModel.load(model_path)
         self.assertEqual(model2.getSolver(), "adamW")
@@ -102,7 +102,7 @@ class TestDefaultSolver(SparkSessionTestCase):
         self.assertEqual(model.getSolver(), "irls")
         transformed1 = model.transform(df)
         path = tempfile.mkdtemp()
-        model_path = path + "/glr"
+        model_path = f"{path}/glr"
         model.save(model_path)
         model2 = GeneralizedLinearRegressionModel.load(model_path)
         self.assertEqual(model2.getSolver(), "irls")
@@ -114,7 +114,7 @@ class PersistenceTest(SparkSessionTestCase):
     def test_linear_regression(self):
         lr = LinearRegression(maxIter=1)
         path = tempfile.mkdtemp()
-        lr_path = path + "/lr"
+        lr_path = f"{path}/lr"
         lr.save(lr_path)
         lr2 = LinearRegression.load(lr_path)
         self.assertEqual(lr.uid, lr2.uid)
@@ -146,7 +146,7 @@ class PersistenceTest(SparkSessionTestCase):
         lr = LinearRegression(maxIter=1)
         model = lr.fit(df)
         path = tempfile.mkdtemp()
-        lr_path = path + "/lr-pmml"
+        lr_path = f"{path}/lr-pmml"
         model.write().format("pmml").save(lr_path)
         pmml_text_list = self.sc.textFile(lr_path).collect()
         pmml_text = "\n".join(pmml_text_list)
@@ -156,7 +156,7 @@ class PersistenceTest(SparkSessionTestCase):
     def test_logistic_regression(self):
         lr = LogisticRegression(maxIter=1)
         path = tempfile.mkdtemp()
-        lr_path = path + "/logreg"
+        lr_path = f"{path}/logreg"
         lr.save(lr_path)
         lr2 = LogisticRegression.load(lr_path)
         self.assertEqual(
@@ -179,7 +179,7 @@ class PersistenceTest(SparkSessionTestCase):
     def test_kmeans(self):
         kmeans = KMeans(k=2, seed=1)
         path = tempfile.mkdtemp()
-        km_path = path + "/km"
+        km_path = f"{path}/km"
         kmeans.save(km_path)
         kmeans2 = KMeans.load(km_path)
         self.assertEqual(kmeans.uid, kmeans2.uid)
@@ -214,7 +214,7 @@ class PersistenceTest(SparkSessionTestCase):
         kmeans = KMeans(k=2, seed=1)
         model = kmeans.fit(df)
         path = tempfile.mkdtemp()
-        km_path = path + "/km-pmml"
+        km_path = f"{path}/km-pmml"
         model.write().format("pmml").save(km_path)
         pmml_text_list = self.sc.textFile(km_path).collect()
         pmml_text = "\n".join(pmml_text_list)
@@ -254,7 +254,7 @@ class PersistenceTest(SparkSessionTestCase):
         """
         self.assertEqual(m1.uid, m2.uid)
         self.assertEqual(type(m1), type(m2))
-        if isinstance(m1, JavaParams) or isinstance(m1, Transformer):
+        if isinstance(m1, (JavaParams, Transformer)):
             self.assertEqual(len(m1.params), len(m2.params))
             for p in m1.params:
                 self._compare_params(m1, m2, p)
@@ -266,7 +266,7 @@ class PersistenceTest(SparkSessionTestCase):
             self.assertEqual(len(m1.stages), len(m2.stages))
             for s1, s2 in zip(m1.stages, m2.stages):
                 self._compare_pipelines(s1, s2)
-        elif isinstance(m1, OneVsRest) or isinstance(m1, OneVsRestModel):
+        elif isinstance(m1, (OneVsRest, OneVsRestModel)):
             for p in m1.params:
                 self._compare_params(m1, m2, p)
             if isinstance(m1, OneVsRestModel):
@@ -279,7 +279,7 @@ class PersistenceTest(SparkSessionTestCase):
             for p in m1.params:
                 self._compare_params(m1, m2, p)
         else:
-            raise RuntimeError("_compare_pipelines does not yet support type: %s" % type(m1))
+            raise RuntimeError(f"_compare_pipelines does not yet support type: {type(m1)}")
 
     def test_pipeline_persistence(self):
         """
@@ -294,12 +294,12 @@ class PersistenceTest(SparkSessionTestCase):
             pl = Pipeline(stages=[tf, pca])
             model = pl.fit(df)
 
-            pipeline_path = temp_path + "/pipeline"
+            pipeline_path = f"{temp_path}/pipeline"
             pl.save(pipeline_path)
             loaded_pipeline = Pipeline.load(pipeline_path)
             self._compare_pipelines(pl, loaded_pipeline)
 
-            model_path = temp_path + "/pipeline-model"
+            model_path = f"{temp_path}/pipeline-model"
             model.save(model_path)
             loaded_model = PipelineModel.load(model_path)
             self._compare_pipelines(model, loaded_model)
@@ -323,12 +323,12 @@ class PersistenceTest(SparkSessionTestCase):
             pl = Pipeline(stages=[tf, p0])
             model = pl.fit(df)
 
-            pipeline_path = temp_path + "/pipeline"
+            pipeline_path = f"{temp_path}/pipeline"
             pl.save(pipeline_path)
             loaded_pipeline = Pipeline.load(pipeline_path)
             self._compare_pipelines(pl, loaded_pipeline)
 
-            model_path = temp_path + "/pipeline-model"
+            model_path = f"{temp_path}/pipeline-model"
             model.save(model_path)
             loaded_model = PipelineModel.load(model_path)
             self._compare_pipelines(model, loaded_model)
@@ -351,12 +351,12 @@ class PersistenceTest(SparkSessionTestCase):
             pl = Pipeline(stages=[tf, tf2])
             model = pl.fit(df)
 
-            pipeline_path = temp_path + "/pipeline"
+            pipeline_path = f"{temp_path}/pipeline"
             pl.save(pipeline_path)
             loaded_pipeline = Pipeline.load(pipeline_path)
             self._compare_pipelines(pl, loaded_pipeline)
 
-            model_path = temp_path + "/pipeline-model"
+            model_path = f"{temp_path}/pipeline-model"
             model.save(model_path)
             loaded_model = PipelineModel.load(model_path)
             self._compare_pipelines(model, loaded_model)
@@ -404,7 +404,7 @@ class PersistenceTest(SparkSessionTestCase):
     def test_decisiontree_classifier(self):
         dt = DecisionTreeClassifier(maxDepth=1)
         path = tempfile.mkdtemp()
-        dtc_path = path + "/dtc"
+        dtc_path = f"{path}/dtc"
         dt.save(dtc_path)
         dt2 = DecisionTreeClassifier.load(dtc_path)
         self.assertEqual(
@@ -427,7 +427,7 @@ class PersistenceTest(SparkSessionTestCase):
     def test_decisiontree_regressor(self):
         dt = DecisionTreeRegressor(maxDepth=1)
         path = tempfile.mkdtemp()
-        dtr_path = path + "/dtr"
+        dtr_path = f"{path}/dtr"
         dt.save(dtr_path)
         dt2 = DecisionTreeClassifier.load(dtr_path)
         self.assertEqual(
@@ -455,7 +455,7 @@ class PersistenceTest(SparkSessionTestCase):
         lr.setThreshold(0.75)
         writer = DefaultParamsWriter(lr)
 
-        savePath = temp_path + "/lr"
+        savePath = f"{temp_path}/lr"
         writer.save(savePath)
 
         reader = DefaultParamsReadable.read()

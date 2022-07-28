@@ -158,7 +158,7 @@ try:
         pass
     copyfile("pyspark/shell.py", "pyspark/python/pyspark/shell.py")
 
-    if (in_spark):
+    if in_spark:
         # Construct the symlink farm - this is necessary since we can't refer to the path above the
         # package root and we need to copy the jars and scripts which are up above the python root.
         if _supports_symlinks():
@@ -176,11 +176,9 @@ try:
             copytree(EXAMPLES_PATH, EXAMPLES_TARGET)
             copytree(DATA_PATH, DATA_TARGET)
             copytree(LICENSES_PATH, LICENSES_TARGET)
-    else:
-        # If we are not inside of SPARK_HOME verify we have the required symlink farm
-        if not os.path.exists(JARS_TARGET):
-            print("To build packaging must be in the python directory under the SPARK_HOME.",
-                  file=sys.stderr)
+    elif not os.path.exists(JARS_TARGET):
+        print("To build packaging must be in the python directory under the SPARK_HOME.",
+              file=sys.stderr)
 
     if not os.path.isdir(SCRIPTS_TARGET):
         print(incorrect_invocation_message, file=sys.stderr)
@@ -205,36 +203,38 @@ try:
         author='Spark Developers',
         author_email='dev@spark.apache.org',
         url='https://github.com/apache/spark/tree/master/python',
-        packages=['pyspark',
-                  'pyspark.cloudpickle',
-                  'pyspark.mllib',
-                  'pyspark.mllib.linalg',
-                  'pyspark.mllib.stat',
-                  'pyspark.ml',
-                  'pyspark.ml.linalg',
-                  'pyspark.ml.param',
-                  'pyspark.sql',
-                  'pyspark.sql.avro',
-                  'pyspark.sql.pandas',
-                  'pyspark.sql.streaming',
-                  'pyspark.streaming',
-                  'pyspark.bin',
-                  'pyspark.sbin',
-                  'pyspark.jars',
-                  'pyspark.pandas',
-                  'pyspark.pandas.data_type_ops',
-                  'pyspark.pandas.indexes',
-                  'pyspark.pandas.missing',
-                  'pyspark.pandas.plot',
-                  'pyspark.pandas.spark',
-                  'pyspark.pandas.typedef',
-                  'pyspark.pandas.usage_logging',
-                  'pyspark.python.pyspark',
-                  'pyspark.python.lib',
-                  'pyspark.data',
-                  'pyspark.licenses',
-                  'pyspark.resource',
-                  'pyspark.examples.src.main.python'],
+        packages=[
+            'pyspark',
+            'pyspark.cloudpickle',
+            'pyspark.mllib',
+            'pyspark.mllib.linalg',
+            'pyspark.mllib.stat',
+            'pyspark.ml',
+            'pyspark.ml.linalg',
+            'pyspark.ml.param',
+            'pyspark.sql',
+            'pyspark.sql.avro',
+            'pyspark.sql.pandas',
+            'pyspark.sql.streaming',
+            'pyspark.streaming',
+            'pyspark.bin',
+            'pyspark.sbin',
+            'pyspark.jars',
+            'pyspark.pandas',
+            'pyspark.pandas.data_type_ops',
+            'pyspark.pandas.indexes',
+            'pyspark.pandas.missing',
+            'pyspark.pandas.plot',
+            'pyspark.pandas.spark',
+            'pyspark.pandas.typedef',
+            'pyspark.pandas.usage_logging',
+            'pyspark.python.pyspark',
+            'pyspark.python.lib',
+            'pyspark.data',
+            'pyspark.licenses',
+            'pyspark.resource',
+            'pyspark.examples.src.main.python',
+        ],
         include_package_data=True,
         package_dir={
             'pyspark.jars': 'deps/jars',
@@ -248,29 +248,31 @@ try:
         package_data={
             'pyspark.jars': ['*.jar'],
             'pyspark.bin': ['*'],
-            'pyspark.sbin': ['spark-config.sh', 'spark-daemon.sh',
-                             'start-history-server.sh',
-                             'stop-history-server.sh', ],
+            'pyspark.sbin': [
+                'spark-config.sh',
+                'spark-daemon.sh',
+                'start-history-server.sh',
+                'stop-history-server.sh',
+            ],
             'pyspark.python.lib': ['*.zip'],
             'pyspark.data': ['*.txt', '*.data'],
             'pyspark.licenses': ['*.txt'],
-            'pyspark.examples.src.main.python': ['*.py', '*/*.py']},
+            'pyspark.examples.src.main.python': ['*.py', '*/*.py'],
+        },
         scripts=scripts,
         license='http://www.apache.org/licenses/LICENSE-2.0',
-        # Don't forget to update python/docs/source/getting_started/install.rst
-        # if you're updating the versions or dependencies.
         install_requires=['py4j==0.10.9.5'],
         extras_require={
             'ml': ['numpy>=1.15'],
             'mllib': ['numpy>=1.15'],
             'sql': [
-                'pandas>=%s' % _minimum_pandas_version,
-                'pyarrow>=%s' % _minimum_pyarrow_version,
+                f'pandas>={_minimum_pandas_version}',
+                f'pyarrow>={_minimum_pyarrow_version}',
                 'numpy>=1.15',
             ],
             'pandas_on_spark': [
-                'pandas>=%s' % _minimum_pandas_version,
-                'pyarrow>=%s' % _minimum_pyarrow_version,
+                f'pandas>={_minimum_pandas_version}',
+                f'pyarrow>={_minimum_pyarrow_version}',
                 'numpy>=1.15',
             ],
         },
@@ -284,11 +286,13 @@ try:
             'Programming Language :: Python :: 3.10',
             'Programming Language :: Python :: Implementation :: CPython',
             'Programming Language :: Python :: Implementation :: PyPy',
-            'Typing :: Typed'],
+            'Typing :: Typed',
+        ],
         cmdclass={
             'install': InstallCommand,
         },
     )
+
 finally:
     # We only cleanup the symlink farm if we were in Spark, otherwise we are installing rather than
     # packaging.

@@ -720,9 +720,10 @@ class DataFrame(Frame, Generic[T]):
     def _apply_series_op(
         self, op: Callable[["Series"], Union["Series", Column]], should_resolve: bool = False
     ) -> "DataFrame":
-        applied = []
-        for label in self._internal.column_labels:
-            applied.append(op(self._psser_for(label)))
+        applied = [
+            op(self._psser_for(label)) for label in self._internal.column_labels
+        ]
+
         internal = self._internal.with_new_columns(applied)
         if should_resolve:
             internal = internal.resolved_copy
@@ -1403,7 +1404,7 @@ class DataFrame(Frame, Generic[T]):
         if (method is not None) and (method not in ["pearson"]):
             raise NotImplementedError("corrwith currently works only for method='pearson'")
         if not isinstance(other, (DataFrame, Series)):
-            raise TypeError("unsupported type: {}".format(type(other).__name__))
+            raise TypeError(f"unsupported type: {type(other).__name__}")
 
         right_is_series = isinstance(other, Series)
 
@@ -1416,15 +1417,23 @@ class DataFrame(Frame, Generic[T]):
             this = combined["this"]
             that = combined["that"]
 
-        this_numeric_column_labels: List[Label] = []
-        for column_label in this._internal.column_labels:
-            if isinstance(this._internal.spark_type_for(column_label), (NumericType, BooleanType)):
-                this_numeric_column_labels.append(column_label)
+        this_numeric_column_labels: List[Label] = [
+            column_label
+            for column_label in this._internal.column_labels
+            if isinstance(
+                this._internal.spark_type_for(column_label),
+                (NumericType, BooleanType),
+            )
+        ]
 
-        that_numeric_column_labels: List[Label] = []
-        for column_label in that._internal.column_labels:
-            if isinstance(that._internal.spark_type_for(column_label), (NumericType, BooleanType)):
-                that_numeric_column_labels.append(column_label)
+        that_numeric_column_labels: List[Label] = [
+            column_label
+            for column_label in that._internal.column_labels
+            if isinstance(
+                that._internal.spark_type_for(column_label),
+                (NumericType, BooleanType),
+            )
+        ]
 
         intersect_numeric_column_labels: List[Label] = []
         diff_numeric_column_labels: List[Label] = []
@@ -1445,9 +1454,12 @@ class DataFrame(Frame, Generic[T]):
                     intersect_numeric_column_labels.append(numeric_column_label)
                 else:
                     diff_numeric_column_labels.append(numeric_column_label)
-            for numeric_column_label in that_numeric_column_labels:
-                if numeric_column_label not in this_numeric_column_labels:
-                    diff_numeric_column_labels.append(numeric_column_label)
+            diff_numeric_column_labels.extend(
+                numeric_column_label
+                for numeric_column_label in that_numeric_column_labels
+                if numeric_column_label not in this_numeric_column_labels
+            )
+
             for numeric_column_label in intersect_numeric_column_labels:
                 this_scol = this._internal.spark_column_for(numeric_column_label)
                 that_scol = that._internal.spark_column_for(numeric_column_label)
@@ -1761,7 +1773,10 @@ class DataFrame(Frame, Generic[T]):
         args = locals()
         psdf = self
         return validate_arguments_and_invoke_function(
-            psdf._to_internal_pandas(), self.to_clipboard, pd.DataFrame.to_clipboard, args
+            psdf._to_internal_pandas(),
+            psdf.to_clipboard,
+            pd.DataFrame.to_clipboard,
+            args,
         )
 
     def to_html(
@@ -1877,11 +1892,7 @@ class DataFrame(Frame, Generic[T]):
         """
         # Make sure locals() call is at the top of the function so we don't capture local variables.
         args = locals()
-        if max_rows is not None:
-            psdf = self.head(max_rows)
-        else:
-            psdf = self
-
+        psdf = self.head(max_rows) if max_rows is not None else self
         return validate_arguments_and_invoke_function(
             psdf._to_internal_pandas(), self.to_html, pd.DataFrame.to_html, args
         )
@@ -1994,11 +2005,7 @@ class DataFrame(Frame, Generic[T]):
         """
         # Make sure locals() call is at the top of the function so we don't capture local variables.
         args = locals()
-        if max_rows is not None:
-            psdf = self.head(max_rows)
-        else:
-            psdf = self
-
+        psdf = self.head(max_rows) if max_rows is not None else self
         return validate_arguments_and_invoke_function(
             psdf._to_internal_pandas(), self.to_string, pd.DataFrame.to_string, args
         )
@@ -2097,7 +2104,7 @@ defaultdict(<class 'list'>, {'col..., 'col...})]
         args = locals()
         psdf = self
         return validate_arguments_and_invoke_function(
-            psdf._to_internal_pandas(), self.to_dict, pd.DataFrame.to_dict, args
+            psdf._to_internal_pandas(), psdf.to_dict, pd.DataFrame.to_dict, args
         )
 
     def to_latex(
@@ -2223,7 +2230,7 @@ defaultdict(<class 'list'>, {'col..., 'col...})]
         args = locals()
         psdf = self
         return validate_arguments_and_invoke_function(
-            psdf._to_internal_pandas(), self.to_latex, pd.DataFrame.to_latex, args
+            psdf._to_internal_pandas(), psdf.to_latex, pd.DataFrame.to_latex, args
         )
 
     # TODO: enable doctests once we drop Spark 2.3.x (due to type coercion logic
@@ -2389,12 +2396,15 @@ defaultdict(<class 'list'>, {'col..., 'col...})]
             [
                 F.to_json(
                     F.struct(
-                        F.array(*[scol for scol in self._internal.index_spark_columns]).alias("a")
+                        F.array(*list(self._internal.index_spark_columns)).alias(
+                            "a"
+                        )
                     )
                 ).alias("index"),
                 F.col("pairs.*"),
             ]
         )
+
 
         # After that, executes pivot with key and its index column.
         # Note that index column should contain unique values since column names
@@ -2736,10 +2746,8 @@ defaultdict(<class 'list'>, {'col..., 'col...})]
                 ]
 
                 if not any(
-                    [
-                        SPARK_INDEX_NAME_PATTERN.match(index_field.struct_field.name)
-                        for index_field in index_fields
-                    ]
+                    SPARK_INDEX_NAME_PATTERN.match(index_field.struct_field.name)
+                    for index_field in index_fields
                 ):
                     index_names = [(index_field.struct_field.name,) for index_field in index_fields]
             internal = InternalFrame(
@@ -2752,10 +2760,7 @@ defaultdict(<class 'list'>, {'col..., 'col...})]
             )
 
         result: DataFrame = DataFrame(internal)
-        if should_return_series:
-            return first_series(result)
-        else:
-            return result
+        return first_series(result) if should_return_series else result
 
     def transform(
         self, func: Callable[..., "Series"], axis: Axis = 0, *args: Any, **kwargs: Any
@@ -2883,44 +2888,43 @@ defaultdict(<class 'list'>, {'col..., 'col...})]
         return_sig = spec.annotations.get("return", None)
         should_infer_schema = return_sig is None
 
-        if should_infer_schema:
-            # Here we execute with the first 1000 to get the return type.
-            # If the records were less than 1000, it uses pandas API directly for a shortcut.
-            log_advice(
-                "If the type hints is not specified for `transform`, "
-                "it is expensive to infer the data type internally."
-            )
-            limit = get_option("compute.shortcut_limit")
-            pdf = self.head(limit + 1)._to_internal_pandas()
-            transformed = pdf.transform(func, axis, *args, **kwargs)  # type: ignore[arg-type]
-            psdf: DataFrame = DataFrame(transformed)
-            if len(pdf) <= limit:
-                return psdf
-
-            applied = []
-            data_fields = []
-            for input_label, output_label in zip(
-                self._internal.column_labels, psdf._internal.column_labels
-            ):
-                psser = self._psser_for(input_label)
-
-                field = psdf._internal.field_for(output_label).normalize_spark_type()
-                data_fields.append(field)
-
-                return_schema = field.spark_type
-                applied.append(
-                    psser.pandas_on_spark._transform_batch(
-                        func=lambda c: func(c, *args, **kwargs),
-                        return_type=SeriesType(field.dtype, return_schema),
-                    )
-                )
-
-            internal = self._internal.with_new_columns(applied, data_fields=data_fields)
-            return DataFrame(internal)
-        else:
+        if not should_infer_schema:
             return self._apply_series_op(
                 lambda psser: psser.pandas_on_spark.transform_batch(func, *args, **kwargs)
             )
+        # Here we execute with the first 1000 to get the return type.
+        # If the records were less than 1000, it uses pandas API directly for a shortcut.
+        log_advice(
+            "If the type hints is not specified for `transform`, "
+            "it is expensive to infer the data type internally."
+        )
+        limit = get_option("compute.shortcut_limit")
+        pdf = self.head(limit + 1)._to_internal_pandas()
+        transformed = pdf.transform(func, axis, *args, **kwargs)  # type: ignore[arg-type]
+        psdf: DataFrame = DataFrame(transformed)
+        if len(pdf) <= limit:
+            return psdf
+
+        applied = []
+        data_fields = []
+        for input_label, output_label in zip(
+            self._internal.column_labels, psdf._internal.column_labels
+        ):
+            psser = self._psser_for(input_label)
+
+            field = psdf._internal.field_for(output_label).normalize_spark_type()
+            data_fields.append(field)
+
+            return_schema = field.spark_type
+            applied.append(
+                psser.pandas_on_spark._transform_batch(
+                    func=lambda c: func(c, *args, **kwargs),
+                    return_type=SeriesType(field.dtype, return_schema),
+                )
+            )
+
+        internal = self._internal.with_new_columns(applied, data_fields=data_fields)
+        return DataFrame(internal)
 
     def pop(self, item: Name) -> "DataFrame":
         """
@@ -3093,10 +3097,9 @@ defaultdict(<class 'list'>, {'col..., 'col...})]
             key = (key,)
         if len(key) > self._internal.index_level:
             raise KeyError(
-                "Key length ({}) exceeds index depth ({})".format(
-                    len(key), self._internal.index_level
-                )
+                f"Key length ({len(key)}) exceeds index depth ({self._internal.index_level})"
             )
+
         if level is None:
             level = 0
 
@@ -3495,16 +3498,17 @@ defaultdict(<class 'list'>, {'col..., 'col...})]
         # |                4|  4|500|             false|                 -4|             false|  ...
         # +-----------------+---+---+------------------+-------------------+------------------+--...
 
-        data_spark_columns = []
-        for label in self._internal.column_labels:
-            data_spark_columns.append(
-                F.when(
-                    psdf[tmp_cond_col_name(name_like_string(label))].spark.column,
-                    psdf._internal.spark_column_for(label),
-                )
-                .otherwise(psdf[tmp_other_col_name(name_like_string(label))].spark.column)
-                .alias(psdf._internal.spark_column_name_for(label))
+        data_spark_columns = [
+            F.when(
+                psdf[tmp_cond_col_name(name_like_string(label))].spark.column,
+                psdf._internal.spark_column_for(label),
             )
+            .otherwise(
+                psdf[tmp_other_col_name(name_like_string(label))].spark.column
+            )
+            .alias(psdf._internal.spark_column_name_for(label))
+            for label in self._internal.column_labels
+        ]
 
         return DataFrame(
             psdf._internal.with_new_columns(
@@ -3759,11 +3763,10 @@ defaultdict(<class 'list'>, {'col..., 'col...})]
             data_fields=[self._internal.field_for(label) for label in column_labels],
         )
 
-        if inplace:
-            self._update_internal_frame(internal)
-            return None
-        else:
+        if not inplace:
             return DataFrame(internal)
+        self._update_internal_frame(internal)
+        return None
 
     def reset_index(
         self,
@@ -3921,11 +3924,10 @@ defaultdict(<class 'list'>, {'col..., 'col...})]
         def rename(index: int) -> Label:
             if multi_index:
                 return ("level_{}".format(index),)
+            if ("index",) not in self._internal.column_labels:
+                return ("index",)
             else:
-                if ("index",) not in self._internal.column_labels:
-                    return ("index",)
-                else:
-                    return ("level_{}".format(index),)
+                return ("level_{}".format(index),)
 
         if level is None:
             new_column_labels = [
