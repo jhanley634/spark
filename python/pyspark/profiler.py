@@ -131,8 +131,7 @@ class Profiler:
 
     def show(self, id: int) -> None:
         """Print the profile stats to stdout, id is the RDD id"""
-        stats = self.stats()
-        if stats:
+        if stats := self.stats():
             print("=" * 60)
             print("Profile of RDD<id=%d>" % id)
             print("=" * 60)
@@ -142,8 +141,7 @@ class Profiler:
         """Dump the profile into path, id is the RDD id"""
         if not os.path.exists(path):
             os.makedirs(path)
-        stats = self.stats()
-        if stats:
+        if stats := self.stats():
             p = os.path.join(path, "rdd_%d.pstats" % id)
             stats.dump_stats(p)
 
@@ -201,8 +199,7 @@ class UDFBasicProfiler(BasicProfiler):
 
     def show(self, id: int) -> None:
         """Print the profile stats to stdout, id is the PythonUDF id"""
-        stats = self.stats()
-        if stats:
+        if stats := self.stats():
             print("=" * 60)
             print("Profile of UDF<id=%d>" % id)
             print("=" * 60)
@@ -212,8 +209,7 @@ class UDFBasicProfiler(BasicProfiler):
         """Dump the profile into path, id is the PythonUDF id"""
         if not os.path.exists(path):
             os.makedirs(path)
-        stats = self.stats()
-        if stats:
+        if stats := self.stats():
             p = os.path.join(path, "udf_%d.pstats" % id)
             stats.dump_stats(p)
 

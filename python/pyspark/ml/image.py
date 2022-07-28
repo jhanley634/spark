@@ -208,8 +208,9 @@ class _ImageSchema:
 
         if not isinstance(array, np.ndarray):
             raise TypeError(
-                "array argument should be numpy.ndarray; however, it got [%s]." % type(array)
+                f"array argument should be numpy.ndarray; however, it got [{type(array)}]."
             )
+
 
         if array.ndim != 3:
             raise ValueError("Invalid array shape")

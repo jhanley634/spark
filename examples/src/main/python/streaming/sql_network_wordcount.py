@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
     # Convert RDDs of the words DStream to DataFrame and run SQL query
     def process(time: datetime.datetime, rdd: RDD[str]) -> None:
-        print("========= %s =========" % str(time))
+        print(f"========= {str(time)} =========")
 
         try:
             # Get the singleton instance of SparkSession

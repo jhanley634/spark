@@ -21,6 +21,7 @@ An interactive shell.
 This file is designed to be launched as a PYTHONSTARTUP script.
 """
 
+
 import atexit
 import os
 import platform
@@ -64,10 +65,10 @@ print(
     % sc.version
 )
 print(
-    "Using Python version %s (%s, %s)"
-    % (platform.python_version(), platform.python_build()[0], platform.python_build()[1])
+    f"Using Python version {platform.python_version()} ({platform.python_build()[0]}, {platform.python_build()[1]})"
 )
-print("Spark context Web UI available at %s" % (sc.uiWebUrl))
+
+print(f"Spark context Web UI available at {sc.uiWebUrl}")
 print("Spark context available as 'sc' (master = %s, app id = %s)." % (sc.master, sc.applicationId))
 print("SparkSession available as 'spark'.")
 
